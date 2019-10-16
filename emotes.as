@@ -54,7 +54,7 @@ void player_pose_freeze_frame(EHandle h_plr, int seq, float frame) {
 	
 	CBaseEntity@ plr = h_plr;
 	if (!plr.IsAlive()) {
-		g_PlayerFuncs.SayText(plr, "Can't play emote while dead.\n");
+		g_PlayerFuncs.SayText(cast<CBasePlayer@>(plr), "Can't play emote while dead.\n");
 		return;
 	}
 	
