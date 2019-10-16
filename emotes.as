@@ -53,15 +53,10 @@ void player_pose_freeze_frame(EHandle h_plr, int seq, float frame) {
 	}
 	
 	CBaseEntity@ plr = h_plr;
-	if (!plr.IsAlive()) {
-		g_PlayerFuncs.SayText(cast<CBasePlayer@>(plr), "Can't play emote while dead.\n");
-		return;
-	}
-	
 	if (plr.pev.sequence != seq) {
 		return;
 	}
-
+	
 	if (plr.pev.frame >= frame) {
 		plr.pev.frame = frame;
 		plr.pev.framerate = 0.00001f;
@@ -72,6 +67,11 @@ void player_pose_freeze_frame(EHandle h_plr, int seq, float frame) {
 }
 
 void player_pose(CBasePlayer@ plr, int seq, float frame, float framerate, float freezeFrame=-1) {
+	if (!plr.IsAlive()) {
+		g_PlayerFuncs.SayText(plr, "Can't play emote while dead.\n");
+		return;
+	}
+	
 	if (framerate == 0) {
 		framerate = 0.00001;
 	}
@@ -90,7 +90,6 @@ void player_pose(CBasePlayer@ plr, int seq, float frame, float framerate, float 
 
 void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args)
 {	
-	
 	if (args.ArgC() == 1 and args[0] == '.emote_list')
 	{
 		array<string>@ emoteNames = g_emotes.getKeys();
