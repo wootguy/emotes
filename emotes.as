@@ -18,16 +18,16 @@ enum ANIM_MODES {
 	MODE_ILOOP // invert framerate when reaching the start/end frame
 }
 
-class Emote {
+class EmotePart {
 	int seq;
 	int mode;
 	float framerate;
 	float startFrame;
 	float endFrame;
 	
-	Emote() {}
+	EmotePart() {}
 	
-	Emote(int seq, int mode, float framerate, float startFrame, float endFrame) {
+	EmotePart(int seq, int mode, float framerate, float startFrame, float endFrame) {
 		this.seq = seq;
 		this.mode = mode;
 		this.framerate = framerate;
@@ -46,25 +46,97 @@ class Emote {
 	}
 }
 
+class Emote {
+	array<EmotePart> parts;
+	bool loop;
+	
+	Emote() {}
+	
+	Emote(array<EmotePart> parts, bool loop) {
+		this.parts = parts;
+		this.loop = loop;
+	}
+}
+
 array<bool> g_priority_sequences(200); // sequences that have priority over emotes
 array<CScheduledFunction@> g_emote_loops(33);
 
 dictionary g_emotes;
 
 void loadEmotes() {
-	g_emotes["alpha"] = Emote(187, MODE_FREEZE, 1.45, 180, 236);
-	g_emotes["scan"] = Emote(188, MODE_ONCE, 1.0, 0, 255);
-	g_emotes["flex"] = Emote(129, MODE_FREEZE, 0.2, 0, 52);
-	g_emotes["lewd"] = Emote(88, MODE_ILOOP, 1, 40, 70);
-	g_emotes["robot"] = Emote(71, MODE_FREEZE, 1, 0, 100);
-	g_emotes["elbow"] = Emote(35, MODE_FREEZE, 1, 135, 135);
-	g_emotes["hunch"] = Emote(16, MODE_FREEZE, 1, 40, 98);
-	g_emotes["anal"] = Emote(14, MODE_FREEZE, 1, 0, 120);
-	g_emotes["joy"] = Emote(9, MODE_FREEZE, 1, 90, 90);
-	g_emotes["wave"] = Emote(190, MODE_ONCE, 1.0, 0, 255);
-	g_emotes["type"] = Emote(186, MODE_LOOP, 1, 0, 255);
-	g_emotes["type2"] = Emote(187, MODE_LOOP, 1.2, 0, 255);
-	g_emotes["study"] = Emote(189, MODE_ONCE, 1, 0, 255);
+	g_emotes["alpha"] = Emote({
+		EmotePart(187, MODE_FREEZE, 1.45, 180, 236)
+	}, false);
+	g_emotes["scan"] = Emote({
+		EmotePart(188, MODE_ONCE, 1.0, 0, 255)
+	}, false);
+	g_emotes["flex"] = Emote({
+		EmotePart(129, MODE_FREEZE, 0.2, 0, 52)
+	}, false);
+	g_emotes["lewd"] = Emote({
+		EmotePart(88, MODE_ILOOP, 1, 40, 70)
+	}, false);
+	g_emotes["robot"] = Emote({
+		EmotePart(71, MODE_FREEZE, 1, 0, 100)
+	}, false);
+	g_emotes["elbow"] = Emote({
+		EmotePart(35, MODE_FREEZE, 1, 135, 135)
+	}, false);
+	g_emotes["hunch"] = Emote({
+		EmotePart(16, MODE_FREEZE, 1, 40, 98)
+	}, false);
+	g_emotes["anal"] = Emote({
+		EmotePart(14, MODE_FREEZE, 1, 0, 120)
+	}, false);
+	g_emotes["joy"] = Emote({
+		EmotePart(9, MODE_FREEZE, 1, 90, 90)
+	}, false);
+	g_emotes["wave"] = Emote({
+		EmotePart(190, MODE_ONCE, 1.0, 0, 255)
+	}, false);
+	g_emotes["type"] = Emote({
+		EmotePart(186, MODE_LOOP, 1, 0, 255)
+	}, false);
+	g_emotes["type2"] = Emote({
+		EmotePart(187, MODE_LOOP, 1.2, 0, 255)
+	}, false);
+	g_emotes["study"] = Emote({
+		EmotePart(189, MODE_ONCE, 1, 0, 255)
+	}, false);
+	g_emotes["oof"] = Emote({
+		EmotePart(13, MODE_ONCE, 1, 0, 255),
+		EmotePart(14, MODE_ONCE, -1, 255, 0)
+	}, false);
+	g_emotes["dance"] = Emote({
+		EmotePart(31, MODE_ILOOP, 1, 35, 255)
+	}, false);
+	g_emotes["dance2"] = Emote({
+		EmotePart(71, MODE_ILOOP, 1, 0, 220)
+	}, false);
+	g_emotes["shake"] = Emote({
+		EmotePart(106, MODE_FREEZE, 1, 0, 0)
+	}, false);
+	g_emotes["fidget"] = Emote({
+		EmotePart(50, MODE_ILOOP, 1, 100, 245)
+	}, false);
+	g_emotes["barnacle"] = Emote({
+		EmotePart(182, MODE_ONCE, 1, 0, 255),
+		EmotePart(183, MODE_ONCE, 1, 0, 255),
+		EmotePart(184, MODE_ONCE, 1, 0, 255),
+		EmotePart(185, MODE_LOOP, 1, 0, 255)
+	}, false);
+	g_emotes["swim"] = Emote({
+		EmotePart(11, MODE_LOOP, 1, 0, 255)
+	}, false);
+	g_emotes["swim2"] = Emote({
+		EmotePart(10, MODE_LOOP, 1, 0, 255)
+	}, false);
+	g_emotes["run"] = Emote({
+		EmotePart(3, MODE_LOOP, 1, 0, 255)
+	}, false);
+	g_emotes["crazy"] = Emote({
+		EmotePart(183, MODE_LOOP, 4, 0, 255)
+	}, false);
 }
 
 void setSequencePriorities() {
@@ -233,7 +305,7 @@ string getModeString(int mode) {
 }
 
 // force animation even when doing other things
-void emoteLoop(EHandle h_plr, Emote@ emote, float lastFrame) {
+void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 	if (!h_plr.IsValid()) {
 		return;
 	}
@@ -243,53 +315,58 @@ void emoteLoop(EHandle h_plr, Emote@ emote, float lastFrame) {
 		return;
 	}
 	
-	bool emoteIsPlaying = plr.pev.sequence == emote.seq;
+	EmotePart e = emote.parts[partIdx];
+	
+	bool emoteIsPlaying = plr.pev.sequence == e.seq;
 	
 	if (!emoteIsPlaying) // player shooting or jumping or something
 	{
 		if (!g_priority_sequences[plr.pev.sequence]) // sequence that's less important than the emote?
 		{
-			if (emote.mode == MODE_ILOOP) 
+			if (e.mode == MODE_ILOOP) 
 			{
-				if (lastFrame >= emote.endFrame-0.1f) 
+				if (lastFrame >= e.endFrame-0.1f) 
 				{
-					lastFrame = emote.endFrame;
-					emote.framerate = -abs(emote.framerate);
+					lastFrame = e.endFrame;
+					e.framerate = -abs(e.framerate);
 				} 
-				else if (lastFrame <= emote.startFrame+0.1f)
+				else if (lastFrame <= e.startFrame+0.1f)
 				{
-					lastFrame = emote.startFrame;
-					emote.framerate = abs(emote.framerate);
+					lastFrame = e.startFrame;
+					e.framerate = abs(e.framerate);
 				}
 			}
-			else if (emote.mode == MODE_LOOP)
+			else if (e.mode == MODE_LOOP)
 			{
-				lastFrame = emote.startFrame;
+				lastFrame = e.startFrame;
 			}
-			else if (emote.mode == MODE_ONCE) 
+			else if (e.mode == MODE_ONCE) 
 			{
-				if ((emote.framerate >= 0 and lastFrame > emote.endFrame - 0.1f) or 
-					(emote.framerate < 0 and lastFrame < emote.endFrame + 0.1f)) {
+				if ((e.framerate >= 0 and lastFrame > e.endFrame - 0.1f) or 
+					(e.framerate < 0 and lastFrame < e.endFrame + 0.1f) or
+					(e.framerate >= 0 and plr.pev.frame < lastFrame) or 
+					(e.framerate < 0 and plr.pev.frame > lastFrame)) {
 					//println("OK GIVE UP " + lastFrame);
+					doEmote(plr, emote, partIdx+1);
 					return;
 				}
 			}
-			else if (emote.mode == MODE_FREEZE)
+			else if (e.mode == MODE_FREEZE)
 			{
-				if ((emote.framerate >= 0 and lastFrame >= emote.endFrame - 0.1f) or
-					(emote.framerate < 0 and lastFrame <= emote.endFrame + 0.1f)) {
-					lastFrame = emote.endFrame;
-					emote.framerate = plr.pev.framerate = 0.0000001f;
+				if ((e.framerate >= 0 and lastFrame >= e.endFrame - 0.1f) or
+					(e.framerate < 0 and lastFrame <= e.endFrame + 0.1f)) {
+					lastFrame = e.endFrame;
+					e.framerate = plr.pev.framerate = 0.0000001f;
 				}
 			}
 		
-			//println("OMG RESET: " + plr.pev.sequence + "[" + plr.pev.frame + "] -> " + seq + "[" + lastFrame + "] " + framerate);
+			//println("OMG RESET: " + plr.pev.sequence + "[" + plr.pev.frame + "] -> " + e.seq + "[" + lastFrame + "] " + e.framerate);
 			
 			plr.m_Activity = ACT_RELOAD;
-			plr.pev.sequence = emote.seq;
+			plr.pev.sequence = e.seq;
 			plr.pev.frame = lastFrame;
 			plr.ResetSequenceInfo();
-			plr.pev.framerate = emote.framerate;
+			plr.pev.framerate = e.framerate;
 		} else {
 			//println("Sequence " + plr.pev.sequence + " has priority over emotes");
 		}
@@ -297,37 +374,44 @@ void emoteLoop(EHandle h_plr, Emote@ emote, float lastFrame) {
 	else // emote sequence playing
 	{ 
 		bool loopFinished = false;			
-		if (emote.mode == MODE_ILOOP)
-			loopFinished = (plr.pev.frame - emote.endFrame > 0.01f) or (emote.startFrame - plr.pev.frame > 0.01f);
+		if (e.mode == MODE_ILOOP)
+			loopFinished = (plr.pev.frame - e.endFrame > 0.01f) or (e.startFrame - plr.pev.frame > 0.01f);
 		else
-			loopFinished = emote.framerate > 0 ? (plr.pev.frame - emote.endFrame > 0.01f) : (emote.endFrame - plr.pev.frame > 0.01f);
+			loopFinished = e.framerate > 0 ? (plr.pev.frame - e.endFrame > 0.01f) : (e.endFrame - plr.pev.frame > 0.01f);
 			
 		if (loopFinished)
 		{
-			if (emote.mode == MODE_ONCE) {
+			if (e.mode == MODE_ONCE) {
 				//println("Emote finished");
+				doEmote(plr, emote, partIdx+1);
 				return;
 			}
-			else if (emote.mode == MODE_FREEZE) {
+			else if (e.mode == MODE_FREEZE) {
 				//println("Emote freezing " + plr.pev.frame);
-				plr.pev.frame = emote.endFrame;
-				emote.framerate = plr.pev.framerate = 0.0000001f;
+				plr.pev.frame = e.endFrame;
+				e.framerate = plr.pev.framerate = 0.0000001f;
 			}
-			else if (emote.mode == MODE_LOOP) 
+			else if (e.mode == MODE_LOOP) 
 			{
 				//println("RESTART SEQ " + plr.pev.frame + " " + framerate);
-				plr.pev.frame = emote.startFrame;
+				plr.pev.frame = e.startFrame;
 			}
-			else if (emote.mode == MODE_ILOOP)
+			else if (e.mode == MODE_ILOOP)
 			{	
-				//println("RESTART SEQ " + plr.pev.frame + " " + framerate);
-				if (plr.pev.frame >= emote.endFrame)
-					plr.pev.frame = emote.endFrame;
-				else if (plr.pev.frame <= emote.startFrame)
-					plr.pev.frame = emote.startFrame;
+				//println("RESTART SEQ " + plr.pev.frame + " " + e.framerate);
+				lastFrame = plr.pev.frame;
+				if (lastFrame >= e.endFrame-0.1f) 
+				{
+					lastFrame = e.endFrame;
+					e.framerate = -abs(e.framerate);
+				} 
+				else if (lastFrame <= e.startFrame+0.1f)
+				{
+					lastFrame = e.startFrame;
+					e.framerate = abs(e.framerate);
+				}
 
-				emote.framerate = -emote.framerate;
-				plr.pev.framerate = emote.framerate;
+				plr.pev.framerate = e.framerate;
 			}
 		} 
 		else 
@@ -345,29 +429,37 @@ void emoteLoop(EHandle h_plr, Emote@ emote, float lastFrame) {
 		}
 	}
 	
-	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, h_plr, @emote, lastFrame);
+	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, h_plr, @emote, partIdx, lastFrame);
 }
 
-void doEmote(CBasePlayer@ plr, Emote emote) {
+void doEmote(CBasePlayer@ plr, Emote emote, int partIdx) {
 	if (!plr.IsAlive()) {
 		g_PlayerFuncs.SayText(plr, "Can't play emote while dead.\n");
 		return;
 	}
+	if (partIdx >= int(emote.parts.size())) {
+		if (emote.loop) {
+			partIdx = 0;
+		} else {
+			return;
+		}
+	}
 	
-	g_PlayerFuncs.SayText(plr, 'Sequence: ' + emote.seq + " (" + getModeString(emote.mode) + "), Speed " + emote.framerate + 
-		", Frames: " + int(emote.startFrame + 0.5f) + "-" + int(emote.endFrame + 0.5f) + "\n");
+	EmotePart e = emote.parts[partIdx];
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Part: ' + partIdx + ', Sequence: ' + e.seq + " (" + getModeString(e.mode) + ")" +
+		", Speed " + e.framerate + ", Frames: " + int(e.startFrame + 0.5f) + "-" + int(e.endFrame + 0.5f) + "\n");
 	
 	plr.m_Activity = ACT_RELOAD;
-	plr.pev.frame = emote.startFrame;
-	plr.pev.sequence = emote.seq;
+	plr.pev.frame = e.startFrame;
+	plr.pev.sequence = e.seq;
 	plr.ResetSequenceInfo();
-	plr.pev.framerate = emote.framerate;
+	plr.pev.framerate = e.framerate;
 	
 	CScheduledFunction@ func = g_emote_loops[plr.entindex()];
 	if (func !is null) { // stop previous emote
 		g_Scheduler.RemoveTimer(func);
 	}
-	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, EHandle(plr), emote, emote.startFrame);
+	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, EHandle(plr), emote, partIdx, e.startFrame);
 }
 
 void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
@@ -405,7 +497,7 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 			startFrame = args.ArgC() >= 5 ? atof(args[4]) : startFrame;
 			endFrame = args.ArgC() >= 6 ? atof(args[5]) : endFrame;
 
-			doEmote(plr, Emote(seq, mode, framerate, startFrame, endFrame));
+			doEmote(plr, Emote( {EmotePart(seq, mode, framerate, startFrame, endFrame)}, false ), 0);
 		}
 		else if (emoteName == "list")
 		{
@@ -437,9 +529,14 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 		else // named emote
 		{
 			if (g_emotes.exists(emoteName)) {
-				Emote@ emote = cast<Emote@>( g_emotes[emoteName] );
-				float framerate = args.ArgC() >= 3 ? atof(args[2]) : emote.framerate;
-				doEmote(plr, emote);
+				Emote emote = cast<Emote@>( g_emotes[emoteName] );
+				
+				float speed = args.ArgC() >= 3 ? atof(args[2]) : 1.0f;
+				for (uint i = 0; i < emote.parts.size(); i++) {
+					emote.parts[i].framerate *= speed;
+				}
+				
+				doEmote(plr, emote, 0);
 			} else {
 				g_PlayerFuncs.SayText(plr, "No emote found with name " + emoteName + "\n");
 			}
