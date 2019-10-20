@@ -502,6 +502,7 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 		else if (emoteName == "list")
 		{
 			array<string>@ emoteNames = g_emotes.getKeys();
+			emoteNames.sortAsc();
 			string emoteText;
 			for (uint i = 0; i < emoteNames.length(); i++)
 			{
