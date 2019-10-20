@@ -268,14 +268,16 @@ void emoteLoop(EHandle h_plr, Emote@ emote, float lastFrame) {
 			}
 			else if (emote.mode == MODE_ONCE) 
 			{
-				if (lastFrame > emote.endFrame - 0.1f) {
+				if ((emote.framerate >= 0 and lastFrame > emote.endFrame - 0.1f) or 
+					(emote.framerate < 0 and lastFrame < emote.endFrame + 0.1f)) {
 					//println("OK GIVE UP " + lastFrame);
 					return;
 				}
 			}
 			else if (emote.mode == MODE_FREEZE)
 			{
-				if (lastFrame >= emote.endFrame - 0.1f) {
+				if ((emote.framerate >= 0 and lastFrame >= emote.endFrame - 0.1f) or
+					(emote.framerate < 0 and lastFrame <= emote.endFrame + 0.1f)) {
 					lastFrame = emote.endFrame;
 					emote.framerate = plr.pev.framerate = 0.0000001f;
 				}
@@ -368,7 +370,7 @@ void doEmote(CBasePlayer@ plr, Emote emote) {
 	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, EHandle(plr), emote, emote.startFrame);
 }
 
-void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args)
+void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 {
 	if (args.ArgC() >= 2) 
 	{
@@ -413,10 +415,12 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args)
 			{
 				emoteText += " | " + emoteNames[i];
 			}
-			if (emoteText.Length() > 0) {
-				emoteText = emoteText.SubString(3);
-			}
-			g_PlayerFuncs.SayText(plr, emoteText + "\n");
+			emoteText = "Emotes: " + emoteText.SubString(3);
+
+			if (inConsole)
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, emoteText + "\n");
+			else
+				g_PlayerFuncs.SayText(plr, emoteText + "\n");
 		}
 		else if (emoteName == "off" or emoteName == "stop") 
 		{
@@ -443,12 +447,32 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args)
 	}
 	else
 	{
-		g_PlayerFuncs.SayText(plr, 'Say ".e list" to list named emotes.\n');
-		g_PlayerFuncs.SayText(plr, 'Say ".e off" to stop your emote.\n');
-		g_PlayerFuncs.SayText(plr, 'Say ".e <name> [speed]" to play a named emote.\n');
-		g_PlayerFuncs.SayText(plr, 'Say ".e <sequence> [mode] [speed] [start_frame] [end_frame]" for more control\n');
-		g_PlayerFuncs.SayText(plr, '[speed] is uncapped, [frames] are 0-255, [sequences] end at 190 for most models\n');
-		g_PlayerFuncs.SayText(plr, '[mode] can be: ONCE, FREEZE, LOOP, ILOOP\n');
+		if (!inConsole) 
+		{
+			g_PlayerFuncs.SayText(plr, 'Say ".e list" to list named emotes.\n');
+			g_PlayerFuncs.SayText(plr, 'Say ".e off" to stop your emote.\n');
+			g_PlayerFuncs.SayText(plr, 'Say ".e <name> [speed]" to play a named emote.\n');
+			g_PlayerFuncs.SayText(plr, 'Say ".e <sequence> [mode] [speed] [start_frame] [end_frame]" for more control.\n');
+			g_PlayerFuncs.SayText(plr, 'Type ".e" in console for more info.');
+		}
+		else
+		{
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '----------------------------------Emote Commands----------------------------------\n\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e list" to list named emotes.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e off" to stop your emote.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e <name> [speed]" to play a named emote.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e <sequence> [mode] [speed] [start_frame] [end_frame]" for more control.\n');
+	
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n<> = required. [] = optional.\n\n');			
+			
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '<sequence> = 0-255. Most models have about 190 sequences.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[mode] = ONCE, FREEZE, LOOP, or ILOOP. Doesn\'t have to be all caps.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[speed] = Any number, even negative. The default speed is 1.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[start_frame/end_frame] = 0-255. This is like a percentage. Frame count in the model doesn\'t matter.\n');
+			
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n----------------------------------------------------------------------------------\n');
+		}
+		
 	}
 }
 
@@ -458,9 +482,17 @@ HookReturnCode ClientSay( SayParameters@ pParams )
 	const CCommand@ args = pParams.GetArguments();
 	if (args.ArgC() > 0 and (args[0].Find(".emote") == 0 or args[0] == '.e'))
 	{
-		doEmoteCommand(plr, args);
+		doEmoteCommand(plr, args, false);
 		pParams.ShouldHide = true;
 		return HOOK_HANDLED;
 	}
 	return HOOK_CONTINUE;
+}
+
+CClientCommand _emote("e", "Emote commands", @emoteCmd );
+
+void emoteCmd( const CCommand@ args )
+{
+	CBasePlayer@ plr = g_ConCommandSystem.GetCurrentPlayer();
+	doEmoteCommand(plr, args, true);
 }
