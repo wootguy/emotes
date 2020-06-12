@@ -522,7 +522,10 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 			}
 		}
 	
-		if (isNumeric) // custom emote
+		if (emoteName == "version") {
+			g_PlayerFuncs.SayText(plr, "emotes plugin v2\n");
+		}
+		else if (isNumeric) // custom emote
 		{
 			int seq = atoi(args[1]);
 		
