@@ -305,23 +305,33 @@ string getModeString(int mode) {
 }
 
 // force animation even when doing other things
-void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
+void emoteLoop(EHandle h_plr, EHandle h_target, Emote@ emote, int partIdx, float lastFrame) {
 	if (!h_plr.IsValid()) {
 		return;
 	}
 	
 	CBasePlayer@ plr = cast<CBasePlayer@>(h_plr.GetEntity());
-	if (plr is null or !plr.IsAlive() or !plr.IsConnected()) {
+	if (plr is null or !plr.IsConnected()) {
+		return;
+	}
+	
+	CBaseMonster@ target = cast<CBaseMonster@>(h_target.GetEntity());
+	if (target is null) {
+		return;
+	}
+	
+	bool targetIsGhost = target.entindex() != plr.entindex();
+	if (!plr.IsAlive() && !targetIsGhost) { // stop if player was killed
 		return;
 	}
 	
 	EmotePart e = emote.parts[partIdx];
-	
-	bool emoteIsPlaying = plr.pev.sequence == e.seq;
+
+	bool emoteIsPlaying = target.pev.sequence == e.seq;
 	
 	if (!emoteIsPlaying) // player shooting or jumping or something
 	{
-		if (!g_priority_sequences[plr.pev.sequence]) // sequence that's less important than the emote?
+		if (!g_priority_sequences[target.pev.sequence]) // sequence that's less important than the emote?
 		{
 			if (e.mode == MODE_ILOOP) 
 			{
@@ -344,8 +354,8 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 			{
 				if ((e.framerate >= 0 and lastFrame > e.endFrame - 0.1f) or 
 					(e.framerate < 0 and lastFrame < e.endFrame + 0.1f) or
-					(e.framerate >= 0 and plr.pev.frame < lastFrame) or 
-					(e.framerate < 0 and plr.pev.frame > lastFrame)) {
+					(e.framerate >= 0 and target.pev.frame < lastFrame) or 
+					(e.framerate < 0 and target.pev.frame > lastFrame)) {
 					//println("OK GIVE UP " + lastFrame);
 					doEmote(plr, emote, partIdx+1);
 					return;
@@ -356,17 +366,17 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 				if ((e.framerate >= 0 and lastFrame >= e.endFrame - 0.1f) or
 					(e.framerate < 0 and lastFrame <= e.endFrame + 0.1f)) {
 					lastFrame = e.endFrame;
-					e.framerate = plr.pev.framerate = 0.0000001f;
+					e.framerate = target.pev.framerate = 0.0000001f;
 				}
 			}
 		
-			//println("OMG RESET: " + plr.pev.sequence + "[" + plr.pev.frame + "] -> " + e.seq + "[" + lastFrame + "] " + e.framerate);
+			//println("OMG RESET: " + target.pev.sequence + "[" + target.pev.frame + "] -> " + e.seq + "[" + lastFrame + "] " + e.framerate);
 			
-			plr.m_Activity = ACT_RELOAD;
-			plr.pev.sequence = e.seq;
-			plr.pev.frame = lastFrame;
-			plr.ResetSequenceInfo();
-			plr.pev.framerate = e.framerate;
+			target.m_Activity = ACT_RELOAD;
+			target.pev.sequence = e.seq;
+			target.pev.frame = lastFrame;
+			target.ResetSequenceInfo();
+			target.pev.framerate = e.framerate;
 		} else {
 			//println("Sequence " + plr.pev.sequence + " has priority over emotes");
 		}
@@ -375,10 +385,10 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 	{ 
 		bool loopFinished = false;			
 		if (e.mode == MODE_ILOOP)
-			loopFinished = (plr.pev.frame - e.endFrame > 0.01f) or (e.startFrame - plr.pev.frame > 0.01f);
+			loopFinished = (target.pev.frame - e.endFrame > 0.01f) or (e.startFrame - target.pev.frame > 0.01f);
 		else
-			loopFinished = e.framerate > 0 ? (plr.pev.frame - e.endFrame > 0.01f) : (e.endFrame - plr.pev.frame > 0.01f);
-			
+			loopFinished = e.framerate > 0 ? (target.pev.frame - e.endFrame > 0.01f) : (e.endFrame - target.pev.frame > 0.01f);
+		
 		if (loopFinished)
 		{
 			if (e.mode == MODE_ONCE) {
@@ -388,18 +398,18 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 			}
 			else if (e.mode == MODE_FREEZE) {
 				//println("Emote freezing " + plr.pev.frame);
-				plr.pev.frame = e.endFrame;
-				e.framerate = plr.pev.framerate = 0.0000001f;
+				target.pev.frame = e.endFrame;
+				e.framerate = target.pev.framerate = 0.0000001f;
 			}
 			else if (e.mode == MODE_LOOP) 
 			{
 				//println("RESTART SEQ " + plr.pev.frame + " " + framerate);
-				plr.pev.frame = e.startFrame;
+				target.pev.frame = e.startFrame;
 			}
 			else if (e.mode == MODE_ILOOP)
 			{	
 				//println("RESTART SEQ " + plr.pev.frame + " " + e.framerate);
-				lastFrame = plr.pev.frame;
+				lastFrame = target.pev.frame;
 				if (lastFrame >= e.endFrame-0.1f) 
 				{
 					lastFrame = e.endFrame;
@@ -411,15 +421,15 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 					e.framerate = abs(e.framerate);
 				}
 
-				plr.pev.framerate = e.framerate;
+				target.pev.framerate = e.framerate;
 			}
 		} 
 		else 
 		{
-			lastFrame = plr.pev.frame;
+			lastFrame = target.pev.frame;
 			
-			plr.m_flLastEventCheck = g_Engine.time + 1.0f;
-			plr.m_flLastGaitEventCheck = g_Engine.time + 1.0f;
+			target.m_flLastEventCheck = g_Engine.time + 1.0f;
+			target.m_flLastGaitEventCheck = g_Engine.time + 1.0f;
 			
 			// animation stops at the absolute start/end frames
 			if (lastFrame <= 0)
@@ -429,13 +439,49 @@ void emoteLoop(EHandle h_plr, Emote@ emote, int partIdx, float lastFrame) {
 		}
 	}
 	
-	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, h_plr, @emote, partIdx, lastFrame);
+	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, h_plr, h_target, @emote, partIdx, lastFrame);
+}
+
+string getPlayerUniqueId(CBasePlayer@ plr)
+{
+	string steamId = g_EngineFuncs.GetPlayerAuthId( plr.edict() );
+	if (steamId == 'STEAM_ID_LAN' or steamId == 'STEAM_ID_BOT' or steamId == 'BOT') {
+		steamId = plr.pev.netname;
+	}
+	return steamId;
+}
+
+// compatibililty with the ghosts plugin
+CBaseMonster@ getGhostEnt(CBasePlayer@ plr) {
+	string id = getPlayerUniqueId(plr);
+	
+	CBaseEntity@ ent = null;
+	do {
+		@ent = g_EntityFuncs.FindEntityByClassname(ent, "cycler"); 
+		if (ent !is null)
+		{
+			println("FOUND " + string(ent.pev.noise));
+			if (string(ent.pev.noise) == id) {
+				println("ZOMG FOUND ID");
+				return cast<CBaseMonster@>(ent);
+			}
+		}
+	} while (ent !is null);
+	
+	return null;
 }
 
 void doEmote(CBasePlayer@ plr, Emote emote, int partIdx) {
+	CBaseMonster@ emoteEnt = cast<CBaseMonster@>(plr);
+
 	if (!plr.IsAlive()) {
-		g_PlayerFuncs.SayText(plr, "Can't play emote while dead.\n");
-		return;
+		@emoteEnt = getGhostEnt(plr);
+		if (emoteEnt is null) {
+			g_PlayerFuncs.SayText(plr, "Can't play emote while dead.\n");
+			return;
+		} else {
+			emoteEnt.pev.noise1 = "emote"; // tell the ghosts plugin that an emote is playing
+		}
 	}
 	if (partIdx >= int(emote.parts.size())) {
 		if (emote.loop) {
@@ -449,17 +495,17 @@ void doEmote(CBasePlayer@ plr, Emote emote, int partIdx) {
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Part: ' + partIdx + ', Sequence: ' + e.seq + " (" + getModeString(e.mode) + ")" +
 		", Speed " + e.framerate + ", Frames: " + int(e.startFrame + 0.5f) + "-" + int(e.endFrame + 0.5f) + "\n");
 	
-	plr.m_Activity = ACT_RELOAD;
-	plr.pev.frame = e.startFrame;
-	plr.pev.sequence = e.seq;
-	plr.ResetSequenceInfo();
-	plr.pev.framerate = e.framerate;
+	emoteEnt.m_Activity = ACT_RELOAD;
+	emoteEnt.pev.frame = e.startFrame;
+	emoteEnt.pev.sequence = e.seq;
+	emoteEnt.ResetSequenceInfo();
+	emoteEnt.pev.framerate = e.framerate;
 	
 	CScheduledFunction@ func = g_emote_loops[plr.entindex()];
 	if (func !is null) { // stop previous emote
 		g_Scheduler.RemoveTimer(func);
 	}
-	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, EHandle(plr), emote, partIdx, e.startFrame);
+	@g_emote_loops[plr.entindex()] = g_Scheduler.SetTimeout("emoteLoop", 0, EHandle(plr), EHandle(emoteEnt), emote, partIdx, e.startFrame);
 }
 
 void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
@@ -522,6 +568,12 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 				g_Scheduler.RemoveTimer(func);
 				plr.m_Activity = ACT_IDLE;
 				plr.ResetSequenceInfo();
+				
+				CBaseEntity@ ghostEnt = getGhostEnt(plr);
+				if (ghostEnt !is null) {
+					ghostEnt.pev.noise1 = ""; // tell the ghsots plugin that the emote was stopped
+				}
+				
 				g_PlayerFuncs.SayText(plr, "Emote stopped\n");
 			} else {
 				g_PlayerFuncs.SayText(plr, "No emote is playing\n");
