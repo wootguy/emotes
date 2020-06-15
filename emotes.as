@@ -460,9 +460,7 @@ CBaseMonster@ getGhostEnt(CBasePlayer@ plr) {
 		@ent = g_EntityFuncs.FindEntityByClassname(ent, "cycler"); 
 		if (ent !is null)
 		{
-			println("FOUND " + string(ent.pev.noise));
 			if (string(ent.pev.noise) == id) {
-				println("ZOMG FOUND ID");
 				return cast<CBaseMonster@>(ent);
 			}
 		}
