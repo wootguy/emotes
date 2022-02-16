@@ -18,7 +18,7 @@ Type ".e <sequence> [mode] [speed] [start_frame] [end_frame]" for more control.
 ```
 
 # Installation
-1. Download the latest [release](https://github.com/wootguy/emotes/releases) and extract to svencoop_addon
+1. Download the latest [release](https://github.com/wootguy/emotes/releases) and extract to svencoop_addon. The updated `player.mdl` is required for animations to work beyond `190`. Only the server needs this model installed.
 1. Add this to `default_plugins.txt`
 ```
   "plugin"
