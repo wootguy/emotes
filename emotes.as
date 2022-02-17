@@ -523,6 +523,47 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 		if (emoteName == "version") {
 			g_PlayerFuncs.SayText(plr, "emotes plugin v2\n");
 		}
+		else if (emoteName == "chain") // super custom emote
+		{
+			float speedMod = atof(args[2]);
+			string loopMode = args[3].ToLowercase();
+			
+			int lastSeqMode = MODE_ONCE;
+			if (loopMode == "loopend") {
+				lastSeqMode = MODE_LOOP;
+			}
+			if (loopMode == "iloopend") {
+				lastSeqMode = MODE_ILOOP;
+			}
+			if (loopMode == "freezeend") {
+				lastSeqMode = MODE_FREEZE;
+			}
+
+			array<EmotePart> parts;
+			
+			for (int i = 4; i < args.ArgC(); i++) {
+				array<string> seqOpts = args[i].Split("_");
+				
+				int seq = atoi(seqOpts[0]);
+				float speed = (seqOpts.size() > 1 ? atof(seqOpts[1]) : 1) * speedMod;
+				
+				float startFrame = (speed >= 0 ? 0.0001f : 254.9999f);
+				float endFrame = (speed >= 0 ? 254.9999f : 0.0001f);
+				startFrame = seqOpts.size() > 2 ? atof(seqOpts[2]) : startFrame;
+				endFrame = seqOpts.size() > 3 ? atof(seqOpts[3]) : endFrame;
+				
+				if (seq > 255) {
+					seq = 255;
+				}
+				
+				bool isLast = i == args.ArgC()-1;
+				int mode = isLast ? lastSeqMode : MODE_ONCE;
+				
+				parts.insertLast(EmotePart(seq, mode, speed, startFrame, endFrame));
+			}
+
+			doEmote(plr, Emote(parts, loopMode == "loop"), 0);
+		}
 		else if (isNumeric) // custom emote
 		{
 			int seq = atoi(args[1]);
@@ -616,13 +657,26 @@ void doEmoteCommand(CBasePlayer@ plr, const CCommand@ args, bool inConsole)
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e off" to stop your emote.\n');
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e <name> [speed]" to play a named emote.\n');
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e <sequence> [mode] [speed] [start_frame] [end_frame]" for more control.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Type ".e chain <speed> <chain_mode> <seq>_[speed]_[start_frame]_[end_frame] ..." for advanced combos.\n');
 	
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n<> = required. [] = optional.\n\n');			
 			
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '<sequence> = 0-255. Most models have about 190 sequences.\n');
-			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[mode] = ONCE, FREEZE, LOOP, or ILOOP. Doesn\'t have to be all caps.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[mode] = once, freeze, loop, or iloop.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[chain_mode] = once, loop, freezeend, loopend, or iloopend.\n');
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[speed] = Any number, even negative. The default speed is 1.\n');
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '[start_frame/end_frame] = 0-255. This is like a percentage. Frame count in the model doesn\'t matter.\n');
+			
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nExamples:\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e oof\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e oof 2\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e 15 iloop\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e 15 iloop 0.5\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e 15 iloop 0.5 0 50\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e chain 2 loop 13 14 15\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e chain 1 once 13 14_-1\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e chain 1 iloopend 182 183 184 185\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '.e chain 1 freezeend 15_0.1_0_50 16_-1_100_10\n');
 			
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n----------------------------------------------------------------------------------\n');
 		}
