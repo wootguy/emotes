@@ -457,7 +457,7 @@ CBaseMonster@ getGhostEnt(CBasePlayer@ plr) {
 	
 	CBaseEntity@ ent = null;
 	do {
-		@ent = g_EntityFuncs.FindEntityByClassname(ent, "cycler"); 
+		@ent = g_EntityFuncs.FindEntityByClassname(ent, "monster_ghost"); 
 		if (ent !is null)
 		{
 			if (string(ent.pev.noise) == id) {
